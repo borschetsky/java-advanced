@@ -1,4 +1,4 @@
-package com.week1.reflection.annotation;
+package com.week1.reflection.annotation.tests;
 
 import com.company.Math;
 import com.week1.reflection.annotation.core.Test;

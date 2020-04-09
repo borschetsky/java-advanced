@@ -1,19 +1,40 @@
-package com.week1.reflection.annotation;
+package com.week1.reflection.annotation.core;
+
+import com.company.Stopwatch;
+import com.week1.reflection.annotation.tests.TestExample;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
-import com.week1.reflection.annotation.core.Test;
-import com.week1.reflection.annotation.core.TesterInfo;
+import java.sql.SQLOutput;
+import java.util.HashMap;
 
-public class
-RunTest {
-    public static void main(String[] args) throws Exception {
+public class TestProcessor {
+    private HashMap<String, String> classes = new HashMap<String, String>();
+
+    public  TestProcessor() {
+        this.classes.put("TestExample", "com.week1.reflection.annotation.tests.TestExample");
+        this.classes.put("TestExample2", "com.week1.reflection.annotation.tests.TestExample2");
+
+    }
+
+    public void runTestsByClassName (String className) throws Exception{
+        if(this.classes.containsKey(className)) {
+            System.out.println("Testing...");
+            String classFullPath = this.classes.get(className);
+            Class<?> classToTest = Class.forName(classFullPath);
+            this.run(classToTest);
+        } else {
+            throw new ClassNotFoundException("Class with name" + className + " not found;");
+        }
+    }
+
+     private void run( Class obj) {
 
         System.out.println("Testing...");
 
         int passed = 0, failed = 0, count = 0, ignore = 0;
 
-        Class<TestExample> obj = TestExample.class;
+//        Class<TestExample> obj = TestExample.class;
 
         // Process @TesterInfo
         if (obj.isAnnotationPresent(TesterInfo.class)) {
@@ -48,7 +69,9 @@ RunTest {
                     if (test.enabled()) {
 
                         try {
-                            method.invoke(obj.newInstance());
+                            Stopwatch.start();
+                            method.invoke(obj);
+                            Stopwatch.stop();
                             System.out.printf("%s - Test '%s' - passed %n", ++count, method.getName());
                             passed++;
                         } catch (Throwable ex) {
@@ -65,7 +88,6 @@ RunTest {
 
             }
             System.out.printf("%nResult : Total : %d, Passed: %d, Failed %d, Ignore %d%n", count, passed, failed, ignore);
-
-        }
         }
     }
+}
