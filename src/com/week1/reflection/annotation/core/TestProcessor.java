@@ -1,6 +1,7 @@
 package com.week1.reflection.annotation.core;
 
 import com.company.Stopwatch;
+import com.week1.reflection.annotation.models.TestInfoModel;
 import com.week1.reflection.annotation.tests.TestExample;
 
 import java.lang.annotation.Annotation;
@@ -10,16 +11,17 @@ import java.util.HashMap;
 
 public class TestProcessor {
     private HashMap<String, String> classes = new HashMap<String, String>();
+    private HashMap<String, TestInfoModel> history = new HashMap<String, TestInfoModel>();
+    private Stopwatch stopWatch = new Stopwatch();
 
-    public  TestProcessor() {
+    public TestProcessor() {
         this.classes.put("TestExample", "com.week1.reflection.annotation.tests.TestExample");
         this.classes.put("TestExample2", "com.week1.reflection.annotation.tests.TestExample2");
 
     }
 
-    public void runTestsByClassName (String className) throws Exception{
-        if(this.classes.containsKey(className)) {
-            System.out.println("Testing...");
+    public void runTestsByClassName(String className) throws Exception {
+        if (this.classes.containsKey(className)) {
             String classFullPath = this.classes.get(className);
             Class<?> classToTest = Class.forName(classFullPath);
             this.run(classToTest);
@@ -28,66 +30,90 @@ public class TestProcessor {
         }
     }
 
-     private void run( Class obj) {
+    public void getTestHistory() {
+        StringBuilder builder = new StringBuilder();
+        this.history.forEach((k, v) -> {
+            builder.append(v.toString());
+            builder.append(System.getProperty("line.separator"));
+        });
+        System.out.println(builder.toString());
+    }
+
+    public void getAlwaysPassedMethods() {
+        StringBuilder builder = new StringBuilder();
+        this.history.forEach((k, v) -> {
+            if (v.getTimesFail() == 0 && v.getTimesPassed() != 0) {
+                builder.append(v.toString());
+                builder.append(System.getProperty("line.separator"));
+            }
+
+        });
+        System.out.println(builder.toString());
+    }
+
+    public void getAlwaysFailedMethods() {
+        StringBuilder builder = new StringBuilder();
+        this.history.forEach((k, v) -> {
+            if (v.getTimesFail() != 0 && v.getTimesRunning() != 0) {
+                builder.append(v.toString());
+                builder.append(System.getProperty("line.separator"));
+            }
+
+        });
+        System.out.println(builder.toString());
+    }
+
+    public void getAllClassNames() {
+        StringBuilder builder = new StringBuilder();
+        this.classes.forEach((k, v) -> {
+            builder.append(k);
+            builder.append(System.getProperty("line.separator"));
+        });
+        System.out.println(builder.toString());
+    }
+
+    private void run(Class obj) {
 
         System.out.println("Testing...");
 
-        int passed = 0, failed = 0, count = 0, ignore = 0;
-
-//        Class<TestExample> obj = TestExample.class;
-
-        // Process @TesterInfo
         if (obj.isAnnotationPresent(TesterInfo.class)) {
 
             Annotation annotation = obj.getAnnotation(TesterInfo.class);
             TesterInfo testerInfo = (TesterInfo) annotation;
+            String className = obj.getName();
 
-            System.out.printf("%nPriority :%s", testerInfo.priority());
-            System.out.printf("%nCreatedBy :%s", testerInfo.createdBy());
-            System.out.printf("%nTags :");
-
-            int tagLength = testerInfo.tags().length;
-            for (String tag : testerInfo.tags()) {
-                if (tagLength > 1) {
-                    System.out.print(tag + ", ");
-                } else {
-                    System.out.print(tag);
-                }
-                tagLength--;
-            }
-
-            System.out.printf("%nLastModified :%s%n%n", testerInfo.lastModified());
             for (Method method : obj.getDeclaredMethods()) {
+                String methodName = method.getName();
 
                 // if method is annotated with @Test
                 if (method.isAnnotationPresent(Test.class)) {
+                    TestInfoModel currentObj;
+                    if (!this.history.containsKey(methodName)) {
+                        this.history.put(method.getName(), new TestInfoModel(method.getName(), obj.getName()));
+                    }
+                    currentObj = history.get(method.getName());
 
                     Annotation annotation1 = method.getAnnotation(Test.class);
                     Test test = (Test) annotation1;
 
                     // if enabled = true (default)
                     if (test.enabled()) {
-
+                        currentObj.incrementRunning();
                         try {
                             Stopwatch.start();
-                            method.invoke(obj);
+                            method.invoke(obj.getDeclaredConstructor().newInstance());
                             Stopwatch.stop();
-                            System.out.printf("%s - Test '%s' - passed %n", ++count, method.getName());
-                            passed++;
+                            currentObj.setBestTime(Stopwatch.elapsedTime());
+                            currentObj.incrementPassing();
+                            Stopwatch.reset();
                         } catch (Throwable ex) {
-                            System.out.printf("%s - Test '%s' - failed: %s %n", ++count, method.getName(), ex.getCause());
-                            failed++;
+                            currentObj.incrementFailed();
+                            Stopwatch.reset();
                         }
-
-                    } else {
-                        System.out.printf("%s - Test '%s' - ignored%n", ++count, method.getName());
-                        ignore++;
                     }
-
                 }
-
             }
-            System.out.printf("%nResult : Total : %d, Passed: %d, Failed %d, Ignore %d%n", count, passed, failed, ignore);
+            System.out.println("Tested.");
         }
     }
 }

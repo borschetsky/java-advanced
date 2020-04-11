@@ -13,26 +13,26 @@ import com.week1.reflection.annotation.core.TesterInfo.Priority;
 public class TestExample {
 
     @Test
-    void testA() {
+    public void testA() {
         if (true)
             throw new RuntimeException("This test always failed");
     }
 
     @Test(enabled = false)
-    void testB() {
+    public void testB() {
         if (false)
             throw new RuntimeException("This test always passed");
     }
 
     @Test(enabled = true)
-    void testC() {
+    public void testC() {
         if (10 > 1) {
             // do nothing, this test always passed.
         }
     }
 
     @Test(enabled = true)
-    void testD() {
+    public void testD() {
         int sum = Math.sum(5, 5);
         if(sum != 10) {
             throw  new RuntimeException("Test should return correct sum");
